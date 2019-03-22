@@ -1,27 +1,49 @@
 import React from 'react';
-
-const InputTchat = props => {
-  const onChangeInputValue = ({ target: { value } }) => {
-    props.putInputValue(value);
+import { emitMessage } from '../services/socket.js';
+class InputTchat extends React.Component {
+  state = {
+    inputValue: '',
   };
 
-  const onKeyDownInput = e => {
+  putInputValue = inputValue => {
+    this.setState({ inputValue });
+  };
+
+  sendMessage = () => {
+    if (this.state.inputValue.length) {
+      const { currentRoom } = this.props;
+      const { inputValue: message } = this.state;
+      emitMessage(currentRoom, message);
+      this.setState({
+        inputValue: '',
+      });
+    }
+  };
+
+  changeInputValue = ({ target: { value } }) => {
+    this.putInputValue(value);
+  };
+
+  keyDownInput = e => {
     if (e.keyCode === 13) {
-      props.sendMessage({ pseudo: props.pseudo, message: props.inputValue });
+      this.sendMessage(this.state.inputValue);
       e.value = '';
     }
   };
 
-  return (
-    <div>
-      <input
-        type="text"
-        placeholder="Tapez votre message"
-        onChange={onChangeInputValue}
-        onKeyDown={onKeyDownInput}
-      />
-    </div>
-  );
-};
+  render = () => {
+    return (
+      <div>
+        <input
+          type="text"
+          placeholder="Tapez votre message"
+          onChange={this.changeInputValue}
+          onKeyDown={this.keyDownInput}
+          value={this.state.inputValue}
+        />
+      </div>
+    );
+  };
+}
 
 export default InputTchat;

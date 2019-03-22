@@ -1,21 +1,40 @@
 import React from 'react';
+import { registerPseudo } from '../services/socket';
 
-const StartScreen = props => {
-  const onChangePseudo = ({ target: { value } }) => {
-    console.log('test');
-    props.putInputPseudo(value);
+class StartScreen extends React.Component {
+  state = {
+    inputValue: '',
   };
 
-  const setPseudo = ({ keyCode }) => {
-    keyCode === 13 && props.setPseudo(props.inputPseudo);
+  changeInput = ({ target: { value: inputValue } }) => {
+    this.setState({ inputValue });
   };
 
-  return (
-    <div>
-      <h1>Entrez votre pseudo</h1>
-      <input type="text" onChange={onChangePseudo} onKeyDown={setPseudo} />
-    </div>
-  );
-};
+  setPseudo = ({ keyCode }) => {
+    const { inputValue } = this.state;
+    if (keyCode === 13) {
+      if (inputValue.length) {
+        registerPseudo(inputValue);
+      } else {
+        registerPseudo(Date.now());
+      }
+      this.props.changeChatState('CHAT');
+    }
+  };
+
+  render = () => {
+    return (
+      <div>
+        <h1>Entrez votre pseudo</h1>
+        <input
+          type="text"
+          onChange={this.changeInput}
+          onKeyDown={this.setPseudo}
+          value={this.state.inputValue}
+        />
+      </div>
+    );
+  };
+}
 
 export default StartScreen;
