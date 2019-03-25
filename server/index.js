@@ -6,27 +6,61 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
 
-const sockets = [];
-
-const broadCast = message => {
-  sockets.forEach(socket => {
-    socket.emit('receiveMessageTchat', message);
-  });
-};
+let rooms = [];
+let users = {};
 
 io.on('connection', socket => {
-  console.log('New tchatter is coming !');
-  sockets.push(socket);
+  socket.on('registerPseudo', pseudo => {
+    users = { ...users, [socket.id]: pseudo };
+    socket.emit('rooms', rooms);
+  });
 
-  socket.on('sendMessageTchat', message => {
-    console.log('test server', message);
-    broadCast(message);
-    //socket.emit('receiveMessageTchat', message);
+  socket.on('sendMessageTchat', (message, room) => {
+    const messageToSend = { pseudo: users[socket.id], message };
+
+    if (room === 'general') {
+      socket.emit('getMessage', messageToSend, room);
+      socket.broadcast.emit('getMessage', messageToSend, room);
+    } else {
+      io.sockets.in(room).emit('getMessage', messageToSend, room);
+    }
+  });
+
+  socket.on('roomConnection', room => {
+    if (rooms.includes(room)) {
+      socket.join(room);
+      io.sockets.in(room).emit(
+        'getMessage',
+        {
+          message: `${users[socket.id]} join the room`,
+        },
+        room
+      );
+    }
+  });
+
+  socket.on('createRoom', roomName => {
+    if (!rooms.includes(roomName)) {
+      rooms = [...rooms, roomName];
+      socket.emit('rooms', rooms);
+      socket.broadcast.emit('rooms', rooms);
+    }
+  });
+
+  socket.on('disconnect', () => {
+    socket.broadcast.emit(
+      'getMessage',
+      {
+        message: `${
+          users[socket.id] ? users[socket.id] : 'Someone'
+        } left the chat`,
+      },
+      'general'
+    );
+
+    const { [socket.id]: userToRemove, ...othersUsers } = users;
+    users = { ...othersUsers };
   });
 });
-
-//const tchatMessage = cb => {
-
-//
 
 server.listen(5000, () => console.log('Server started'));
